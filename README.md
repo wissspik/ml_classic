@@ -34,6 +34,22 @@
    - для линейных моделей применялся `StandardScaler`;
    - отдельно проверялась L1-регуляризация для отбора слабых признаков.
 
+### Feature engineering
+
+Feature engineering выполняется до обучения моделей и применяется одинаково к `train` и `test`.
+
+- По исходным `var_*` рассчитываются построчные агрегаты: среднее, стандартное отклонение, минимум, максимум, размах, медиана, 25-й и 75-й процентили, IQR, сумма и сумма модулей.
+- Добавляются `var_nonzero_count` и `var_missing_count` — количество ненулевых и пропущенных значений в строке.
+- Для каждого исходного `var_*` создаётся signed-log признак:
+
+```python
+np.sign(x) * np.log1p(np.abs(x))
+```
+
+Это нелинейное преобразование сохраняет знак значения и уменьшает влияние выбросов.
+- Пропуски заполняются медианами, рассчитанными только на обучающей части. Полностью пустые признаки удаляются до импутации, чтобы избежать некорректных статистик.
+- `target` и `ID_code` не используются при построении признаков, поэтому feature engineering не создаёт утечку данных.
+
 3. Обучены несколько моделей:
    - `LogisticRegression`;
    - `DecisionTreeClassifier`;
@@ -75,10 +91,10 @@ result/catboost_strong_baseline.csv
 ```python
 CatBoostClassifier(
     loss_function="Logloss",
-    eval_metric="PRAUC",
-    iterations=5000,
+    eval_metric="AUC",
+    iterations=1500,
     learning_rate=0.03,
-    depth=12,
+    depth=8,
     l2_leaf_reg=10,
     random_seed=42,
     task_type="GPU"
@@ -92,38 +108,3 @@ CatBoostClassifier(
 - Слишком глубокие и долгие бустинги требуют аккуратного контроля переобучения.
 - Линейные модели требуют масштабирования признаков, иначе возможны проблемы со сходимостью.
 - L1-регуляризация может занулять слишком много признаков при маленьком `C`.
-
-## Как воспроизвести
-
-1. Положить в корень проекта файлы:
-
-```text
-train.csv
-test.csv
-sample_submission.csv
-```
-
-2. Установить зависимости:
-
-```bash
-pip install pandas numpy scikit-learn scipy matplotlib seaborn catboost lightgbm xgboost
-```
-
-3. Запустить ноутбук:
-
-```text
-santander_customer_transaction_prediction.ipynb
-```
-
-4. Финальный файл для отправки находится здесь:
-
-```text
-result/catboost_strong_baseline.csv
-```
-
-## Основные файлы
-
-- `santander_customer_transaction_prediction.ipynb` - основной ноутбук с EDA, обучением моделей и созданием submissions.
-- `result/catboost_strong_baseline.csv` - лучший сохранённый submission.
-- `image.png` - скриншот результата Kaggle для лучшего submission.
-- `image-1.png` - скриншот результата для одного из baseline submissions.
