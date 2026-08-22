@@ -1,4 +1,4 @@
-# Customer Churn Prediction — HW3 ML Start 2026
+# Customer Churn Prediction
 
 Проект по бинарной классификации: предсказать, уйдёт ли клиент из сервиса (`Churn`).
 
